@@ -7,7 +7,10 @@
     "dev": "tsx src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "start:dev": "npm run build && npm start"
+    "start:dev": "npm run build && npm start",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "keywords": [
     "claude",
@@ -24,7 +27,13 @@
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.0.10",
+    "@types/supertest": "^6.0.3",
+    "jest": "^30.0.4",
+    "socket.io-client": "^4.8.1",
+    "supertest": "^7.1.1",
+    "ts-jest": "^29.4.0",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
   }
