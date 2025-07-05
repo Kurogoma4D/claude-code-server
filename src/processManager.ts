@@ -46,7 +46,7 @@ export const executeCommand = (
   }
 
   // Spawn Claude process
-  const claudeProcess = spawn('claude', ['-p', command], {
+  const claudeProcess = spawn('claude', ['-c', '-p', command], {
     cwd: workingDir,
     env: { ...process.env },
     shell: false,
