@@ -45,16 +45,21 @@ class ClaudeCodeManager {
       throw new Error('Working directory must be within the base directory');
     }
 
-    // Claude Codeコマンドを実行
-    const args = ['-p', command];
-    const options = {
+    // 実際のclaudeコマンド
+    const claudeProcess = spawn('claude', ['-p', command], {
       cwd: workingDir,
       env: { ...process.env },
-      shell: true
-    };
+      shell: false,
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
 
     console.log(`Executing in: ${workingDir}`);
-    const claudeProcess = spawn('claude', args, options);
+    console.log(`Command: claude -p ${command}`);
+    console.log(`Process PID: ${claudeProcess.pid}`);
+    
+    // stdinを閉じて、入力待ちを防ぐ
+    claudeProcess.stdin.end();
+    
     this.activeProcesses.set(socketId, claudeProcess);
 
     return claudeProcess;
@@ -117,8 +122,26 @@ io.on('connection', (socket: Socket) => {
     try {
       const process = claudeManager.executeCommand(socket.id, command, relativePath);
 
+      // プロセスが正常に起動したことを通知
+      socket.emit('output', {
+        type: 'system',
+        data: `Process started with PID: ${process.pid}`,
+        timestamp: Date.now()
+      });
+
+      // spawnイベントをリスニング
+      process.on('spawn', () => {
+        console.log('Process spawned successfully');
+        socket.emit('output', {
+          type: 'system',
+          data: 'Claude process spawned successfully',
+          timestamp: Date.now()
+        });
+      });
+
       // 標準出力の処理
       process.stdout.on('data', (data: Buffer) => {
+        console.log(`stdout received (${data.length} bytes): ${data.toString()}`);
         const output: ProcessOutput = {
           type: 'stdout',
           data: data.toString(),
@@ -129,6 +152,7 @@ io.on('connection', (socket: Socket) => {
 
       // 標準エラー出力の処理
       process.stderr.on('data', (data: Buffer) => {
+        console.log(`stderr received (${data.length} bytes): ${data.toString()}`);
         const output: ProcessOutput = {
           type: 'stderr',
           data: data.toString(),
@@ -138,7 +162,8 @@ io.on('connection', (socket: Socket) => {
       });
 
       // プロセス終了時の処理
-      process.on('exit', (code: number | null) => {
+      process.on('exit', (code: number | null, signal: string | null) => {
+        console.log(`Process exited with code: ${code}, signal: ${signal}`);
         const output: ProcessOutput = {
           type: 'exit',
           data: code || 0,
@@ -150,6 +175,7 @@ io.on('connection', (socket: Socket) => {
 
       // エラー処理
       process.on('error', (error: Error) => {
+        console.error(`Process error: ${error.message}`);
         const output: ProcessOutput = {
           type: 'error',
           data: error.message,
@@ -157,6 +183,11 @@ io.on('connection', (socket: Socket) => {
         };
         socket.emit('output', output);
         claudeManager.killProcess(socket.id);
+      });
+
+      // closeイベントの処理
+      process.on('close', (code: number | null, signal: string | null) => {
+        console.log(`Process closed with code: ${code}, signal: ${signal}`);
       });
 
     } catch (error) {

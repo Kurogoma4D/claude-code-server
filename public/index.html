@@ -281,6 +281,9 @@
           case "stderr":
             addOutput(output.data, "stderr", timestamp);
             break;
+          case "system":
+            addSystemMessage(output.data, timestamp);
+            break;
           case "exit":
             addSystemMessage(
               `Process exited with code ${output.data}`,
