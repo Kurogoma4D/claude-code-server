@@ -5,12 +5,7 @@ import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
 import { createTestServer } from '../test-utils/createTestServer';
 import { AddressInfo } from 'net';
-
-interface ProcessOutput {
-  type: 'stdout' | 'stderr' | 'exit' | 'error' | 'system';
-  data: string | number;
-  timestamp: number;
-}
+import { ProcessOutput } from '../types';
 
 // Mock child_process.spawn
 jest.mock('child_process', () => ({
