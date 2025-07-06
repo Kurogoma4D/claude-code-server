@@ -7,6 +7,8 @@ import cors from 'cors';
 import { ServerConfig, ClaudeCommand } from './types';
 import { createProcessManager, killAllProcesses } from './processManager';
 import { handleExecuteCommand, handleKillProcess, handleDisconnect } from './socketHandlers';
+import { createPtyManager, killAllPtys } from './ptyManager';
+import { handleStartSession, handleTerminalInput, handleTerminalResize, handleKillSession, handlePtyDisconnect } from './ptyHandlers';
 
 // コマンドライン引数から設定を取得
 const config: ServerConfig = {
@@ -24,6 +26,7 @@ const io = new Server(server, {
 });
 
 const processManager = createProcessManager(config.baseDirectory);
+const ptyManager = createPtyManager(config.baseDirectory);
 
 // 静的ファイルの配信
 app.use(express.static(path.join(__dirname, '../public')));
@@ -47,6 +50,7 @@ app.get('/health', (_req, res) => {
 io.on('connection', (socket: Socket) => {
   console.log(`Client connected: ${socket.id}`);
 
+  // Legacy command execution (for backward compatibility)
   socket.on('execute-command', (data: ClaudeCommand) => {
     handleExecuteCommand(socket, processManager, data);
   });
@@ -55,8 +59,26 @@ io.on('connection', (socket: Socket) => {
     handleKillProcess(socket, processManager);
   });
 
+  // New PTY-based interactive session
+  socket.on('start-session', (data: { relativePath?: string }) => {
+    handleStartSession(socket, ptyManager, data);
+  });
+
+  socket.on('terminal-input', (data: { data: string }) => {
+    handleTerminalInput(socket, ptyManager, data);
+  });
+
+  socket.on('terminal-resize', (data: { cols: number; rows: number }) => {
+    handleTerminalResize(socket, ptyManager, data);
+  });
+
+  socket.on('kill-session', () => {
+    handleKillSession(socket, ptyManager);
+  });
+
   socket.on('disconnect', () => {
     handleDisconnect(socket, processManager);
+    handlePtyDisconnect(socket, ptyManager);
   });
 });
 
@@ -76,6 +98,7 @@ server.listen(config.port, () => {
 const gracefulShutdown = (signal: string) => {
   console.log(`${signal} received, shutting down gracefully...`);
   killAllProcesses(processManager);
+  killAllPtys(ptyManager);
   server.close(() => {
     console.log('Server closed');
     process.exit(0);
