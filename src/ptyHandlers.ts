@@ -4,6 +4,8 @@ import { createPty, writeToPty, resizePty, killPty } from './ptyManager';
 
 interface StartSessionData {
   relativePath?: string;
+  cols?: number;
+  rows?: number;
 }
 
 interface TerminalInputData {
@@ -34,6 +36,8 @@ export function handleStartSession(socket: Socket, manager: any, data: StartSess
     manager,
     socket.id,
     workingDirectory,
+    data.cols || 80,
+    data.rows || 30,
     (data) => {
       socket.emit('terminal-output', {
         type: 'data',

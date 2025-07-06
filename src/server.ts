@@ -48,7 +48,7 @@ io.on('connection', (socket: Socket) => {
   console.log(`Client connected: ${socket.id}`);
 
   // PTY-based interactive session
-  socket.on('start-session', (data: { relativePath?: string }) => {
+  socket.on('start-session', (data: { relativePath?: string; cols?: number; rows?: number }) => {
     handleStartSession(socket, ptyManager, data);
   });
 

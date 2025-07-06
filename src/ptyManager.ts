@@ -23,6 +23,8 @@ export function createPty(
   manager: PtyManager,
   socketId: string,
   workingDirectory: string,
+  cols: number,
+  rows: number,
   onData: (data: string) => void,
   onExit: (code: number, signal: number) => void
 ): pty.IPty | null {
@@ -36,8 +38,8 @@ export function createPty(
   try {
     const ptyProcess = pty.spawn('claude', [], {
       name: 'xterm-color',
-      cols: 80,
-      rows: 30,
+      cols: cols,
+      rows: rows,
       cwd: workingDirectory,
       env: process.env
     });

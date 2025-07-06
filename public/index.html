@@ -141,9 +141,12 @@
         border-radius: 0 0 8px 8px;
         overflow: hidden;
         padding: 10px;
+        display: flex;
+        min-height: 0; /* Important for flex child */
       }
 
       #terminal {
+        flex: 1;
         height: 100%;
         width: 100%;
       }
@@ -152,6 +155,132 @@
         color: #969696;
         font-size: 12px;
         margin-left: 20px;
+      }
+
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .container {
+          padding: 10px;
+          height: 100vh;
+        }
+
+        .header {
+          padding: 10px 12px;
+          gap: 10px;
+          border-radius: 6px 6px 0 0;
+        }
+
+        .header h1 {
+          font-size: 16px;
+          margin: 0;
+        }
+
+        .status {
+          font-size: 12px;
+          margin-left: auto;
+          gap: 6px;
+        }
+
+        .status-indicator {
+          width: 10px;
+          height: 10px;
+        }
+
+        .controls {
+          flex-direction: row;
+          justify-content: center;
+          padding: 10px;
+          gap: 10px;
+        }
+
+        button {
+          flex: 0 0 auto;
+          padding: 8px 20px;
+          font-size: 14px;
+          white-space: nowrap;
+        }
+
+        .session-info {
+          display: none; /* Hide on mobile to save space */
+        }
+
+        .terminal-container {
+          flex: 1;
+          min-height: 0;
+          overflow: hidden;
+          padding: 8px;
+          border-radius: 0 0 6px 6px;
+          margin-bottom: 10px;
+        }
+
+        #terminal {
+          overflow-x: auto;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .container {
+          padding: 8px;
+          height: 100vh;
+          max-width: 100%;
+        }
+
+        .header {
+          padding: 8px 10px;
+          border-radius: 6px 6px 0 0;
+        }
+
+        .header h1 {
+          font-size: 14px;
+        }
+
+        .controls {
+          padding: 8px;
+          gap: 8px;
+        }
+
+        button {
+          flex: 0 0 calc(50% - 4px);
+          font-size: 13px;
+          padding: 8px 16px;
+        }
+
+        .terminal-container {
+          flex: 1;
+          min-height: 0;
+          padding: 6px;
+          border-radius: 0 0 6px 6px;
+          margin-bottom: 8px;
+        }
+      }
+
+      /* Improve layout on tablets */
+      @media (min-width: 769px) and (max-width: 1024px) {
+        .container {
+          padding: 15px;
+        }
+
+        .controls {
+          flex-wrap: wrap;
+        }
+
+        .input-group {
+          flex: 1 1 auto;
+          min-width: 250px;
+        }
+
+        button {
+          flex: 0 0 auto;
+        }
+
+        .session-info {
+          flex: 1 1 100%;
+          margin-left: 0;
+          margin-top: 10px;
+        }
       }
     </style>
   </head>
@@ -166,14 +295,6 @@
       </div>
 
       <div class="controls">
-        <div class="input-group" style="flex: 0.5">
-          <label for="relativePathInput">Working Directory (Optional)</label>
-          <input
-            type="text"
-            id="relativePathInput"
-            placeholder="./subdirectory"
-          />
-        </div>
         <button id="startBtn">Start Session</button>
         <button id="killBtn" class="danger" disabled>Kill Session</button>
         <span class="session-info" id="sessionInfo"></span>
@@ -188,7 +309,6 @@
       const socket = io();
       // Expose socket for testing
       window.socket = socket;
-      const relativePathInput = document.getElementById("relativePathInput");
       const startBtn = document.getElementById("startBtn");
       const killBtn = document.getElementById("killBtn");
       const statusIndicator = document.getElementById("statusIndicator");
@@ -202,6 +322,22 @@
 
       // Initialize xterm.js
       function initTerminal() {
+        // Adjust settings based on screen width
+        const isMobile = window.innerWidth <= 768;
+        const isSmallMobile = window.innerWidth <= 480;
+        const fontSize = isSmallMobile ? 11 : (isMobile ? 12 : 14);
+        
+        // Calculate initial dimensions based on container size
+        const container = document.getElementById('terminal');
+        const containerWidth = container.offsetWidth - 20; // Account for padding
+        const containerHeight = container.offsetHeight;
+        
+        // Estimate cols and rows based on font size
+        const charWidth = fontSize * 0.6; // Approximate character width
+        const lineHeight = fontSize * 1.5; // Approximate line height
+        const cols = Math.floor(containerWidth / charWidth);
+        const rows = Math.floor(containerHeight / lineHeight);
+        
         term = new Terminal({
           theme: {
             background: '#1e1e1e',
@@ -224,15 +360,24 @@
             brightCyan: '#29b8db',
             brightWhite: '#e5e5e5'
           },
-          fontSize: 14,
+          fontSize: fontSize,
           fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-          cursorBlink: true
+          cursorBlink: true,
+          convertEol: true,
+          scrollback: 1000,
+          allowTransparency: false,
+          cols: cols || 80,
+          rows: rows || 24
         });
 
         fitAddon = new FitAddon.FitAddon();
         term.loadAddon(fitAddon);
         term.open(document.getElementById('terminal'));
-        fitAddon.fit();
+        
+        // Delay fit to ensure container is properly sized
+        setTimeout(() => {
+          fitAddon.fit();
+        }, 100);
 
         // Handle terminal input
         term.onData(data => {
@@ -241,19 +386,27 @@
           }
         });
 
-        // Handle resize
-        window.addEventListener('resize', () => {
-          fitAddon.fit();
-          if (isSessionActive) {
-            const dimensions = fitAddon.proposeDimensions();
-            if (dimensions) {
-              socket.emit('terminal-resize', {
-                cols: dimensions.cols,
-                rows: dimensions.rows
-              });
+        // Handle resize with debouncing for mobile
+        let resizeTimer;
+        const handleResize = () => {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => {
+            if (fitAddon && term) {
+              fitAddon.fit();
+              if (isSessionActive) {
+                const dimensions = fitAddon.proposeDimensions();
+                if (dimensions) {
+                  socket.emit('terminal-resize', {
+                    cols: dimensions.cols,
+                    rows: dimensions.rows
+                  });
+                }
+              }
             }
-          }
-        });
+          }, 150);
+        };
+        
+        window.addEventListener('resize', handleResize);
       }
 
       // Get server config
@@ -311,19 +464,36 @@
 
       // Start session
       function startSession() {
-        const relativePath = relativePathInput.value.trim() || undefined;
-
         if (term) {
           term.clear();
         }
 
-        socket.emit("start-session", { relativePath });
+        // Get current terminal dimensions
+        let cols = 80;
+        let rows = 30;
+        if (fitAddon) {
+          const dimensions = fitAddon.proposeDimensions();
+          if (dimensions) {
+            cols = dimensions.cols;
+            rows = dimensions.rows;
+          }
+        }
+
+        // Send session start with terminal dimensions
+        socket.emit("start-session", { 
+          cols,
+          rows
+        });
         setSessionActive(true);
 
-        const fullPath = relativePath
-          ? `${baseDirectory}/${relativePath}`.replace(/\/+/g, "/")
-          : baseDirectory;
-        sessionInfo.textContent = `Working in: ${fullPath}`;
+        // Force terminal resize after session starts
+        setTimeout(() => {
+          if (fitAddon) {
+            fitAddon.fit();
+          }
+        }, 100);
+
+        sessionInfo.textContent = `Working in: ${baseDirectory}`;
       }
 
       // Kill session
@@ -338,7 +508,6 @@
         isSessionActive = active;
         startBtn.disabled = active;
         killBtn.disabled = !active;
-        relativePathInput.disabled = active;
         
         if (!active) {
           sessionInfo.textContent = `Base: ${baseDirectory}`;
@@ -349,11 +518,6 @@
       startBtn.addEventListener("click", startSession);
       killBtn.addEventListener("click", killSession);
 
-      relativePathInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter" && !isSessionActive) {
-          startSession();
-        }
-      });
     </script>
   </body>
 </html>
