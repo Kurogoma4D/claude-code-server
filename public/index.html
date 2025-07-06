@@ -186,6 +186,8 @@
 
     <script>
       const socket = io();
+      // Expose socket for testing
+      window.socket = socket;
       const relativePathInput = document.getElementById("relativePathInput");
       const startBtn = document.getElementById("startBtn");
       const killBtn = document.getElementById("killBtn");

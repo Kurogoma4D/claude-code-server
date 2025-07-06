@@ -142,3 +142,20 @@ dist
 .svelte-kit
 
 # End of https://www.toptal.com/developers/gitignore/api/node
+
+# Playwright Test
+test-results/
+playwright-report/
+playwright/.cache/
+
+# E2E test artifacts
+*.webm
+*.png
+test-failed-*.png
+error-context.md
+
+# Server logs
+server.log
+
+# E2E test temporary files
+e2e/temp-bin/
