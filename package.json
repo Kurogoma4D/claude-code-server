@@ -1,5 +1,5 @@
 {
-  "name": "claude-code-server",
+  "name": "ccserve",
   "version": "1.0.0",
   "description": "WebSocket server for Claude Code integration",
   "main": "dist/server.js",
