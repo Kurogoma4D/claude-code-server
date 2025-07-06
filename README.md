@@ -25,6 +25,10 @@ npx ccserve /path/to/your/project
 
 This will start the server on port 3000 (or the port specified in the `PORT` environment variable). Open your browser to `http://localhost:3000` to access the web interface.
 
+[!CAUTION]
+This project is intended only in private network (like access via VPN).
+Do not hosting on public network.
+
 ## ⚙️ Configuration
 
 - **Port**: Set via `PORT` environment variable (default: 3000)
