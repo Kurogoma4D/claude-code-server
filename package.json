@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "WebSocket server for Claude Code integration",
   "main": "dist/server.js",
+  "bin": {
+    "ccserve": "./dist/cli.js"
+  },
   "scripts": {
     "dev": "tsx src/server.ts",
     "build": "tsc",
