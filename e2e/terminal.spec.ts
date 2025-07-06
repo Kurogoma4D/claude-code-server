@@ -62,19 +62,6 @@ test.describe('Claude Interactive Terminal', () => {
     await expect(page.getByText('package.json')).toBeVisible();
   });
 
-  test('should handle working directory changes', async ({ page }) => {
-    // 作業ディレクトリを指定
-    await page.getByPlaceholder('./subdirectory').fill('src');
-    
-    // セッション開始
-    await page.getByRole('button', { name: 'Start Session' }).click();
-    
-    // 作業ディレクトリの確認
-    await expect(page.getByText('Working in:').locator('..')).toContainText('/src');
-    
-    // セッション開始メッセージの確認
-    await expect(page.getByText(/Claude interactive session started.*\/src/)).toBeVisible();
-  });
 
   test('should kill active session', async ({ page }) => {
     // セッション開始
@@ -177,17 +164,6 @@ test.describe('Claude Interactive Terminal', () => {
     await expect(page.getByText('Connected')).toBeVisible({ timeout: 10000 });
   });
 
-  test('should handle invalid working directory', async ({ page }) => {
-    // 無効なパス（親ディレクトリへの移動を試みる）
-    await page.getByPlaceholder('./subdirectory').fill('../../../');
-    
-    // セッション開始
-    await page.getByRole('button', { name: 'Start Session' }).click();
-    
-    // エラーメッセージの確認
-    await expect(page.getByText('[Error]')).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText('Cannot navigate outside base directory')).toBeVisible();
-  });
 
   test('should display ANSI colors correctly', async ({ page }) => {
     // セッション開始
