@@ -1,6 +1,6 @@
 {
   "name": "ccserve",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "WebSocket server for Claude Code integration",
   "main": "dist/server.js",
   "bin": {
@@ -30,8 +30,8 @@
     "express": "^5.1.0",
     "node-pty": "^1.0.0",
     "socket.io": "^4.8.1",
-    "xterm": "^5.3.0",
-    "xterm-addon-fit": "^0.8.0"
+    "@xterm/xterm": "^5.5.0",
+    "@xterm/addon-fit": "^0.10.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.53.2",
