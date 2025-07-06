@@ -4,9 +4,7 @@ import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import path from 'path';
 import cors from 'cors';
-import { ServerConfig, ClaudeCommand } from './types';
-import { createProcessManager, killAllProcesses } from './processManager';
-import { handleExecuteCommand, handleKillProcess, handleDisconnect } from './socketHandlers';
+import { ServerConfig } from './types';
 import { createPtyManager, killAllPtys } from './ptyManager';
 import { handleStartSession, handleTerminalInput, handleTerminalResize, handleKillSession, handlePtyDisconnect } from './ptyHandlers';
 
@@ -25,7 +23,6 @@ const io = new Server(server, {
   }
 });
 
-const processManager = createProcessManager(config.baseDirectory);
 const ptyManager = createPtyManager(config.baseDirectory);
 
 // 静的ファイルの配信
@@ -50,16 +47,7 @@ app.get('/health', (_req, res) => {
 io.on('connection', (socket: Socket) => {
   console.log(`Client connected: ${socket.id}`);
 
-  // Legacy command execution (for backward compatibility)
-  socket.on('execute-command', (data: ClaudeCommand) => {
-    handleExecuteCommand(socket, processManager, data);
-  });
-
-  socket.on('kill-process', () => {
-    handleKillProcess(socket, processManager);
-  });
-
-  // New PTY-based interactive session
+  // PTY-based interactive session
   socket.on('start-session', (data: { relativePath?: string }) => {
     handleStartSession(socket, ptyManager, data);
   });
@@ -77,7 +65,6 @@ io.on('connection', (socket: Socket) => {
   });
 
   socket.on('disconnect', () => {
-    handleDisconnect(socket, processManager);
     handlePtyDisconnect(socket, ptyManager);
   });
 });
@@ -97,7 +84,6 @@ server.listen(config.port, () => {
 // グレースフルシャットダウン
 const gracefulShutdown = (signal: string) => {
   console.log(`${signal} received, shutting down gracefully...`);
-  killAllProcesses(processManager);
   killAllPtys(ptyManager);
   server.close(() => {
     console.log('Server closed');

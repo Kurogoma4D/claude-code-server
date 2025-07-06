@@ -1,7 +1,5 @@
 import * as pty from 'node-pty';
-import { Socket } from 'socket.io';
 import path from 'path';
-import { ProcessOutput } from './types';
 
 interface PtyProcess {
   pty: pty.IPty;
