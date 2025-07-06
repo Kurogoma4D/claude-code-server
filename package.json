@@ -23,7 +23,7 @@
     "websocket",
     "terminal"
   ],
-  "author": "",
+  "author": "Kurogoma4D <contact@krgm4d.dev> (https://github.com/Kurogoma4D/claude-code-server)",
   "license": "MIT",
   "dependencies": {
     "cors": "^2.8.5",
